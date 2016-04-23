@@ -18,8 +18,8 @@ var schemaLogin = {
        description: 'Please select the quantity of the item you would like to purchase'
      },
      money:{
-       type: 'integer',
-       pattern: /\b((?:\d{1,3})(?:([,. ']?)\d{3})?(?:\2\d{3})*)(?:(?:|(?!\2))([,.])(\d+))?\b/,
+       type: 'number',
+       pattern: /^\$?[0-9]+\.?[0-9]?[0-9]?$/,
        message: 'How much money is in your budget? Ex: 450, NOT $450',
        required: true,
        description: 'How much money is in your budget? '
