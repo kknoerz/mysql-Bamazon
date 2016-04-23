@@ -19,7 +19,7 @@ var schemaLogin = {
      },
      money:{
        type: 'integer',
-       pattern: /^(0?[1-9]|[1-9][0-9]|[1-9][0-9][0-9])$/,
+       pattern: /\b((?:\d{1,3})(?:([,. ']?)\d{3})?(?:\2\d{3})*)(?:(?:|(?!\2))([,.])(\d+))?\b/,
        message: 'How much money is in your budget? Ex: 450, NOT $450',
        required: true,
        description: 'How much money is in your budget? '
