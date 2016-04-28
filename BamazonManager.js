@@ -77,7 +77,6 @@ connection.connect(function(err){
     console.log('error connecting: '+err.stack);
     return;
   }
-  console.log('connected as id '+connection.threadId);
   console.log('Welcome manager.')
   prompt.get(schema, function(err, result){
     if(err) throw err;
@@ -119,13 +118,10 @@ connection.connect(function(err){
           });
         });
       });
-
     }else{
       console.log('BAD! You chose: '+result.option);
     }
 
 
   });
-
-
 });
