@@ -20,7 +20,7 @@ var schemaLogin = {
      },
      money:{
        type: 'number',
-       pattern: /^\$?[1-9]+\.?[0-9]?[1-9]?$/,
+       pattern: /^(0?[1-9]|[1-9][0-9]|[1-9][0-9][0-9])$/,
        message: 'How much money is in your budget? Ex: 450, NOT $450',
        required: true,
        description: 'How much money is in your budget? '
@@ -109,15 +109,38 @@ connection.connect(function(err){
               returnShopper();
             });
           });
+
+        }else if(totalPrice == money){
+          money = money - totalPrice;
+          money = parseFloat(money).toFixed(2);
+          var inCart = {
+            [productName]:want
+          }
+          console.log('We have enought '+res[0].ProductName+' in stock.');
+
+          cart.push(inCart);
+          console.log('Here are all the items in your cart: ', cart);
+          connection.query('UPDATE products SET StockQuantity = '+newQuantity+' WHERE ItemID ='+result.itemID, function(err, res){
+            if (err) throw err;
+            connection.query('SELECT ItemID, ProductName, DepartmentName, Price, StockQuantity FROM products WHERE ItemID ='+result.itemID, function(err, res){
+              console.log(res);
+              process.exit();
+            });
+          });
+          console.log('You don\'t have any money left!')
         }else if(totalPrice>money){
           console.log('You don\'t have enough money for that many!');
           process.exit();
         }else if(want>have && have !=0){
           console.log('We only have '+have+' in stock.');
           returnShopper();
+        }else if (money == 0){
+          console.log('You don\'t have any money left!')
+          process.exit();
         }else{
           console.log(err);
           console.log('IDK what happened..')
+          console.log('money: ',money)
           process.exit();
         }
       });
@@ -129,7 +152,14 @@ connection.connect(function(err){
       if(err) throw err;
       console.log(all);
       console.log('Above is a list of all items available for purchase.');
-      console.log('You bought '+want+' '+productName+'(s) for a total of '+totalPrice);
+      if(totalPrice<money && want<have){
+        console.log('You bought '+want+' '+productName+'(s) for a total of '+totalPrice);
+      }else{
+        console.log("You can't buy "+want+" "+productName+"(s), for "+totalPrice+", you either too little money: $"+money+" or we only have "+have+" in stock.");
+      }
+      if(want>have){
+        console.log('We only have '+have+' in stock.');
+      }
       console.log('This is how much money you have left: $'+money);
       console.log('Here are all the items in your cart: ', cart);
       promptQuit.get(schemaQuit, function(err, result){
@@ -149,13 +179,15 @@ connection.connect(function(err){
             totalPrice = want*(res[0].Price);
             newQuantity = have - want;
             productName = res[0].ProductName;
+
             if(newQuantity > 0 && money > 0 && totalPrice < money){
-              console.log('We have enought '+res[0].ProductName+' in stock.');
               money = money - totalPrice;
               money = parseFloat(money).toFixed(2);
               var inCart = {
                 [productName]:want
               }
+              console.log('We have enought '+res[0].ProductName+' in stock.');
+
               cart.push(inCart);
               connection.query('UPDATE products SET StockQuantity = '+newQuantity+' WHERE ItemID ='+result.itemID, function(err, res){
                 if (err) throw err;
@@ -165,13 +197,32 @@ connection.connect(function(err){
                   returnShopper();
                 });
               });
+            }else if(totalPrice == money){
+              money = money - totalPrice;
+              money = parseFloat(money).toFixed(2);
+              var inCart = {
+                [productName]:want
+              }
+              console.log('We have enought '+res[0].ProductName+' in stock.');
+
+              cart.push(inCart);
+              console.log('Here are all the items in your cart: ', cart);
+              connection.query('UPDATE products SET StockQuantity = '+newQuantity+' WHERE ItemID ='+result.itemID, function(err, res){
+                if (err) throw err;
+                connection.query('SELECT ItemID, ProductName, DepartmentName, Price, StockQuantity FROM products WHERE ItemID ='+result.itemID, function(err, res){
+                  console.log(res);
+                  process.exit();
+                });
+              });
+              console.log('You don\'t have any money left!')
+
             }else if(totalPrice>money){
               console.log('You don\'t have enough money for that many! Choose less!');
               returnShopper();
             }else if(want>have && have !=0){
               console.log('We only have '+have+' in stock.');
               returnShopper();
-            }else if(money = 0){
+            }else if(money == 0){
               console.log('You don\'t have any money left!')
               process.exit();
             }
