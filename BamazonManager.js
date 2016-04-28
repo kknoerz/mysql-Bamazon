@@ -2,6 +2,7 @@ var mysql = require('mysql');
 var prompt = require('prompt');
 var promptAdd = require('prompt');
 var promptNew = require('prompt');
+var promptQuit = require('prompt');
 var schema = {
    properties: {
      option: {
@@ -25,9 +26,9 @@ var schema = {
      quantity:{
        type: 'integer',
        pattern: /(\d+(.\d+)?-\d+(.\d+)?)/,
-       message: 'Please select the quantity of the item you would like to purchase. Ex: 32',
+       message: 'Please select the quantity of the item you would like to add. Ex: 32',
        required: true,
-       description: 'Please select the quantity of the item you would like to purchase'
+       description: 'Please select the quantity of the item you would like to add'
      }
    }
  }
@@ -63,8 +64,22 @@ var schema = {
      }
    }
  }
+ var schemaQuit = {
+   properties: {
+     quit:{
+       type: 'string',
+       pattern: /^(?:yes\b|no\b)/,
+       message: 'Please type "yes" to CONTINUE or "no to EXIT" exactly as written. Ex: yes no',
+       required: true,
+       description: 'Would you like to perform another action? Type "yes" to CONTINUE or "no to EXIT"'
+     }
+   }
+ };
 
 prompt.start();
+promptAdd.start();
+promptNew.start();
+promptQuit.start();
 
 var connection = mysql.createConnection({
   host      : 'localhost',
@@ -77,51 +92,93 @@ connection.connect(function(err){
     console.log('error connecting: '+err.stack);
     return;
   }
-  console.log('Welcome manager.')
-  prompt.get(schema, function(err, result){
-    if(err) throw err;
+  var runManager = function(){
+    console.log('Welcome manager.')
+    prompt.get(schema, function(err, result){
+      if(err) throw err;
 
-    if(result.option == 1){
-      connection.query('select * from products;', function(err, all){
-        if(err) throw err;
-        console.log(all);
-        console.log('Above is a list of all items available for purchase.');
-      });
-    }else if(result.option == 2){
-      connection.query('select * from products WHERE StockQuantity < 5;', function(err, less){
-        if(err) throw err;
-        console.log(less);
-        console.log('Above is a list of all items with less than 5 in inventory.');
-      });
-    }else if(result.option == 3){
-      connection.query('select ItemID, ProductName, StockQuantity from products;', function(err, all){
-        if(err) throw err;
-        console.log(all)
-        console.log('You want to add items, how many do you want to add')
-        promptAdd.get(schemaAdd, function(err, result){
-          var updatedQty = (result.quantity) + (all[result.itemID - 1].StockQuantity);
-          connection.query('UPDATE products SET StockQuantity = '+updatedQty+' WHERE ItemID ='+result.itemID, function(err, res){
-            connection.query('select ItemID, ProductName, StockQuantity from products WHERE ItemID ='+result.itemID, function(err, all){
-              console.log('Quantity Updated!');
-              console.log(all);
+      if(result.option == 1){
+        connection.query('select * from products;', function(err, all){
+          if(err) throw err;
+          console.log(all);
+          console.log('Above is a list of all items available for purchase.');
+          promptQuit.get(schemaQuit, function(err, result){
+            if(err) throw err;
+            if(result.quit == 'no'){
+              process.exit();
+            }
+            if(result.quit == 'yes'){
+              runManager();
+            }
+          });
+        });
+      }else if(result.option == 2){
+        connection.query('select * from products WHERE StockQuantity < 5;', function(err, less){
+          if(err) throw err;
+          if(less.length == 0){
+            console.log('Stock Quantity is healthy, everything abover 5')
+          }else{
+            console.log(less);
+            console.log('Above is a list of all items with less than 5 in inventory.');
+          }
+          promptQuit.get(schemaQuit, function(err, result){
+            if(err) throw err;
+            if(result.quit == 'no'){
+              process.exit();
+            }
+            if(result.quit == 'yes'){
+              runManager();
+            }
+          });
+        });
+      }else if(result.option == 3){
+        connection.query('select ItemID, ProductName, StockQuantity from products;', function(err, all){
+          if(err) throw err;
+          console.log(all)
+          console.log('You want to add items, how many do you want to add')
+          promptAdd.get(schemaAdd, function(err, result){
+            var updatedQty = (result.quantity) + (all[result.itemID - 1].StockQuantity);
+            connection.query('UPDATE products SET StockQuantity = '+updatedQty+' WHERE ItemID ='+result.itemID, function(err, res){
+              connection.query('select ItemID, ProductName, StockQuantity from products WHERE ItemID ='+result.itemID, function(err, all){
+                console.log('Quantity Updated!');
+                console.log(all);
+                promptQuit.get(schemaQuit, function(err, result){
+                  if(err) throw err;
+                  if(result.quit == 'no'){
+                    process.exit();
+                  }
+                  if(result.quit == 'yes'){
+                    runManager();
+                  }
+                });
+              });
             });
           });
         });
-      });
-    }else if(result.option == 4){
-      promptNew.get(schemaNew, function(err, result){
-        connection.query('INSERT INTO products(ProductName, DepartmentName, Price, StockQuantity)VALUES("'+result.productName+'", "'+result.departmentName+'", "'+result.price+'", "'+result.stockQuantity+'");', function(err, all){
-          if(err) throw err;
-          console.log(all);
-          connection.query('select * from products;', function(err, all){
+      }else if(result.option == 4){
+        promptNew.get(schemaNew, function(err, result){
+          connection.query('INSERT INTO products(ProductName, DepartmentName, Price, StockQuantity)VALUES("'+result.productName+'", "'+result.departmentName+'", "'+result.price+'", "'+result.stockQuantity+'");', function(err, all){
+            if(err) throw err;
             console.log(all);
+            connection.query('select * from products;', function(err, all){
+              console.log(all);
+              promptQuit.get(schemaQuit, function(err, result){
+                if(err) throw err;
+                if(result.quit == 'no'){
+                  process.exit();
+                }
+                if(result.quit == 'yes'){
+                  runManager();
+                }
+              });
+            });
           });
         });
-      });
-    }else{
-      console.log('BAD! You chose: '+result.option);
-    }
-
-
-  });
+      }else{
+        console.log('BAD! You chose: '+result.option);
+        process.exit();
+      }
+    });
+  }
+  runManager();
 });

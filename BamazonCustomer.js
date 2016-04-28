@@ -49,10 +49,10 @@ var schemaLogin = {
     properties: {
       quit:{
         type: 'string',
-        pattern: /[yes]|[no]$/,
+        pattern: /^(?:yes\b|Yes\b|no\b|No\b|Y\b|N\b|y\b|n\b)/,
         message: 'Would you like to keep shopping? Ex: yes no',
         required: true,
-        description: 'Would you like to keep shopping?'
+        description: 'Would you like to keep shopping? yes/no'
       }
     }
   };
@@ -62,6 +62,7 @@ var schemaLogin = {
  var have = 0;
  var itemName = '';
  var newQuantity = 0;
+ var cart = [];
 
 promptLogin.start();
 promptReturn.start();
@@ -92,9 +93,14 @@ connection.connect(function(err){
         totalPrice = want*(res[0].Price);
         newQuantity = have - want;
         productName = res[0].ProductName;
+
         if(newQuantity >= 0 && money > 0 && totalPrice < money){
           money = money - totalPrice;
           money = parseFloat(money).toFixed(2);
+          var inCart = {
+            [productName]:want
+          }
+          cart.push(inCart);
           connection.query('UPDATE products SET StockQuantity = '+newQuantity+' WHERE ItemID ='+result.itemID, function(err, res){
             if (err) throw err;
             // console.log(res);
@@ -125,6 +131,7 @@ connection.connect(function(err){
       console.log('Above is a list of all items available for purchase.');
       console.log('You bought '+want+' '+productName+'(s) for a total of '+totalPrice);
       console.log('This is how much money you have left: $'+money);
+      console.log('Here are all the items in your cart: ', cart);
       promptQuit.get(schemaQuit, function(err, result){
         if (err) throw err;
 
@@ -145,6 +152,11 @@ connection.connect(function(err){
             if(newQuantity > 0 && money > 0 && totalPrice < money){
               console.log('We have enought '+res[0].ProductName+' in stock.');
               money = money - totalPrice;
+              money = parseFloat(money).toFixed(2);
+              var inCart = {
+                [productName]:want
+              }
+              cart.push(inCart);
               connection.query('UPDATE products SET StockQuantity = '+newQuantity+' WHERE ItemID ='+result.itemID, function(err, res){
                 if (err) throw err;
                 // console.log(res);
