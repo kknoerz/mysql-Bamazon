@@ -6,4 +6,4 @@
 
 * The application takes in orders from customers and depletes from the store's total supplies. It also tracks cash-on-hand and cart items.  
 
-* For more information check out: [https://serene-ravine-58603.herokuapp.com/](https://serene-ravine-58603.herokuapp.com/)
+* For more information check out: [https://boiling-chamber-39902.herokuapp.com](https://boiling-chamber-39902.herokuapp.com)
